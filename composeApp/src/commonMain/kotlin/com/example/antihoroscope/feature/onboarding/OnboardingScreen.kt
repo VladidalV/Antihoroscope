@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -165,7 +164,6 @@ private fun ZodiacStep(
                 zodiacSigns = state.zodiacSigns,
                 selectedZodiacSignId = state.selectedZodiacSignId,
                 onZodiacSelected = onZodiacSelected,
-                modifier = Modifier.heightIn(min = 360.dp, max = 470.dp),
             )
 
             Spacer(modifier = Modifier.height(16.dp))

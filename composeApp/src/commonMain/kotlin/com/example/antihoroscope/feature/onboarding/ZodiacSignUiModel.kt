@@ -5,7 +5,7 @@ data class ZodiacSignUiModel(
     val name: String,
     val dateRange: String,
     val symbol: String,
-    val accentColor: ULong,
+    val accentColor: Long,
     val selectedCaption: String,
 ) {
     val accessibilityLabel: String
@@ -18,7 +18,7 @@ data class ZodiacSignUiModel(
                 name = "Овен",
                 dateRange = "21 марта - 19 апреля",
                 symbol = "Ar",
-                accentColor = 0xFFFF5C8AUL,
+                accentColor = 0xFFFF5C8A,
                 selectedCaption = "Овен выбран. Смело, но спорно.",
             ),
             ZodiacSignUiModel(
@@ -26,7 +26,7 @@ data class ZodiacSignUiModel(
                 name = "Телец",
                 dateRange = "20 апреля - 20 мая",
                 symbol = "Ta",
-                accentColor = 0xFF63E6BEUL,
+                accentColor = 0xFF63E6BE,
                 selectedCaption = "Телец выбран. Космос уже накрыл стол.",
             ),
             ZodiacSignUiModel(
@@ -34,7 +34,7 @@ data class ZodiacSignUiModel(
                 name = "Близнецы",
                 dateRange = "21 мая - 20 июня",
                 symbol = "Ge",
-                accentColor = 0xFFFFD166UL,
+                accentColor = 0xFFFFD166,
                 selectedCaption = "Близнецы выбраны. Обоим приготовиться.",
             ),
             ZodiacSignUiModel(
@@ -42,7 +42,7 @@ data class ZodiacSignUiModel(
                 name = "Рак",
                 dateRange = "21 июня - 22 июля",
                 symbol = "Ca",
-                accentColor = 0xFF74C0FCUL,
+                accentColor = 0xFF74C0FC,
                 selectedCaption = "Рак выбран. Эмоции сохранены в облако.",
             ),
             ZodiacSignUiModel(
@@ -50,7 +50,7 @@ data class ZodiacSignUiModel(
                 name = "Лев",
                 dateRange = "23 июля - 22 августа",
                 symbol = "Le",
-                accentColor = 0xFFFF922BUL,
+                accentColor = 0xFFFF922B,
                 selectedCaption = "Лев выбран. Аплодисменты включены.",
             ),
             ZodiacSignUiModel(
@@ -58,7 +58,7 @@ data class ZodiacSignUiModel(
                 name = "Дева",
                 dateRange = "23 августа - 22 сентября",
                 symbol = "Vi",
-                accentColor = 0xFFA9E34BUL,
+                accentColor = 0xFFA9E34B,
                 selectedCaption = "Дева выбрана. Таблица судьбы отсортирована.",
             ),
             ZodiacSignUiModel(
@@ -66,7 +66,7 @@ data class ZodiacSignUiModel(
                 name = "Весы",
                 dateRange = "23 сентября - 22 октября",
                 symbol = "Li",
-                accentColor = 0xFFE599F7UL,
+                accentColor = 0xFFE599F7,
                 selectedCaption = "Весы выбраны. Решение почти принято.",
             ),
             ZodiacSignUiModel(
@@ -74,7 +74,7 @@ data class ZodiacSignUiModel(
                 name = "Скорпион",
                 dateRange = "23 октября - 21 ноября",
                 symbol = "Sc",
-                accentColor = 0xFFFF6B6BUL,
+                accentColor = 0xFFFF6B6B,
                 selectedCaption = "Скорпион выбран. Все сделали вид, что спокойны.",
             ),
             ZodiacSignUiModel(
@@ -82,7 +82,7 @@ data class ZodiacSignUiModel(
                 name = "Стрелец",
                 dateRange = "22 ноября - 21 декабря",
                 symbol = "Sa",
-                accentColor = 0xFF9775FAUL,
+                accentColor = 0xFF9775FA,
                 selectedCaption = "Стрелец выбран. Куда-то уже пора.",
             ),
             ZodiacSignUiModel(
@@ -90,7 +90,7 @@ data class ZodiacSignUiModel(
                 name = "Козерог",
                 dateRange = "22 декабря - 19 января",
                 symbol = "Co",
-                accentColor = 0xFFADB5BDUL,
+                accentColor = 0xFFADB5BD,
                 selectedCaption = "Козерог выбран. План на хаос утверждён.",
             ),
             ZodiacSignUiModel(
@@ -98,7 +98,7 @@ data class ZodiacSignUiModel(
                 name = "Водолей",
                 dateRange = "20 января - 18 февраля",
                 symbol = "Aq",
-                accentColor = 0xFF66D9E8UL,
+                accentColor = 0xFF66D9E8,
                 selectedCaption = "Водолей выбран. Логика временно отключена.",
             ),
             ZodiacSignUiModel(
@@ -106,7 +106,7 @@ data class ZodiacSignUiModel(
                 name = "Рыбы",
                 dateRange = "19 февраля - 20 марта",
                 symbol = "Pi",
-                accentColor = 0xFF91A7FFUL,
+                accentColor = 0xFF91A7FF,
                 selectedCaption = "Рыбы выбраны. Сон записан как аргумент.",
             ),
         )
