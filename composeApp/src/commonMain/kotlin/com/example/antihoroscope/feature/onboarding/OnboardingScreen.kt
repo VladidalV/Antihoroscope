@@ -1,5 +1,7 @@
 package com.example.antihoroscope.feature.onboarding
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -15,10 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -26,65 +26,95 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.antihoroscope.feature.onboarding.components.NotificationTimeSelector
 import com.example.antihoroscope.feature.onboarding.components.OnboardingPage
 import com.example.antihoroscope.feature.onboarding.components.ZodiacSelector
+import com.example.antihoroscope.platform.notifications.NotificationPermissionStatus
+import com.example.antihoroscope.platform.notifications.rememberDailyNotificationScheduler
+import com.example.antihoroscope.platform.notifications.rememberNotificationPermissionManager
 import com.example.antihoroscope.ui.theme.AntiHoroscopeTheme
 
 @Composable
 fun OnboardingScreen(
     onCompleted: (OnboardingCompletionResult) -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: OnboardingViewModel = viewModel { OnboardingViewModel() },
 ) {
-    val stateHolder = remember { OnboardingStateHolder() }
-    var state by remember { mutableStateOf(stateHolder.state) }
+    val notificationPermissionManager = rememberNotificationPermissionManager()
+    val dailyNotificationScheduler = rememberDailyNotificationScheduler()
+    val state by viewModel.state.collectAsStateWithLifecycle()
 
-    fun dispatch(intent: OnboardingIntent) {
-        val effect = stateHolder.dispatch(intent)
-        state = stateHolder.state
-
-        when (effect) {
-            is OnboardingEffect.Completed -> onCompleted(effect.result)
-            null -> Unit
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is OnboardingEvent.Completed -> onCompleted(event.result)
+            }
         }
     }
 
-    when (state.currentStep) {
-        OnboardingStep.Welcome -> WelcomeStep(
-            state = state,
-            modifier = modifier,
-            onNext = { dispatch(OnboardingIntent.NextClicked) },
-            onSkip = { dispatch(OnboardingIntent.SkipClicked) },
-        )
-        OnboardingStep.Concept -> ConceptStep(
-            state = state,
-            modifier = modifier,
-            onBack = { dispatch(OnboardingIntent.BackClicked) },
-            onNext = { dispatch(OnboardingIntent.NextClicked) },
-            onSkip = { dispatch(OnboardingIntent.SkipClicked) },
-        )
-        OnboardingStep.Zodiac -> ZodiacStep(
-            state = state,
-            modifier = modifier,
-            onBack = { dispatch(OnboardingIntent.BackClicked) },
-            onNext = { dispatch(OnboardingIntent.NextClicked) },
-            onZodiacSelected = { zodiacSignId ->
-                dispatch(OnboardingIntent.ZodiacSelected(zodiacSignId))
-            },
-        )
-        OnboardingStep.Notifications -> NotificationsStep(
-            state = state,
-            modifier = modifier,
-            onBack = { dispatch(OnboardingIntent.BackClicked) },
-            onComplete = { dispatch(OnboardingIntent.CompleteClicked) },
-            onSkip = { dispatch(OnboardingIntent.SkipClicked) },
-            onNotificationsEnabledChanged = { enabled ->
-                dispatch(OnboardingIntent.NotificationToggleChanged(enabled))
-            },
-            onTimeSelected = { time ->
-                dispatch(OnboardingIntent.NotificationTimeChanged(time))
-            },
-        )
+    Crossfade(
+        targetState = state.currentStep,
+        animationSpec = tween(durationMillis = 220),
+        label = "onboarding-step-crossfade",
+    ) { step ->
+        when (step) {
+            OnboardingStep.Welcome -> WelcomeStep(
+                state = state,
+                modifier = modifier,
+                onNext = { viewModel.onIntent(OnboardingIntent.NextClicked) },
+                onSkip = { viewModel.onIntent(OnboardingIntent.SkipClicked) },
+            )
+            OnboardingStep.Concept -> ConceptStep(
+                state = state,
+                modifier = modifier,
+                onBack = { viewModel.onIntent(OnboardingIntent.BackClicked) },
+                onNext = { viewModel.onIntent(OnboardingIntent.NextClicked) },
+                onSkip = { viewModel.onIntent(OnboardingIntent.SkipClicked) },
+            )
+            OnboardingStep.Zodiac -> ZodiacStep(
+                state = state,
+                modifier = modifier,
+                onBack = { viewModel.onIntent(OnboardingIntent.BackClicked) },
+                onNext = { viewModel.onIntent(OnboardingIntent.NextClicked) },
+                onZodiacSelected = { zodiacSignId ->
+                    viewModel.onIntent(OnboardingIntent.ZodiacSelected(zodiacSignId))
+                },
+            )
+            OnboardingStep.Notifications -> NotificationsStep(
+                state = state,
+                modifier = modifier,
+                onBack = { viewModel.onIntent(OnboardingIntent.BackClicked) },
+                onComplete = {
+                    if (state.notificationsEnabled) {
+                        viewModel.onIntent(OnboardingIntent.NotificationPermissionRequestStarted)
+                        notificationPermissionManager.requestPermission { status ->
+                            if (status == NotificationPermissionStatus.Granted) {
+                                dailyNotificationScheduler.scheduleDailyNotification(
+                                    hour = state.notificationTime.hour,
+                                    minute = state.notificationTime.minute,
+                                )
+                            } else {
+                                dailyNotificationScheduler.cancelDailyNotification()
+                            }
+                            viewModel.onIntent(OnboardingIntent.NotificationPermissionRequestFinished(status))
+                            viewModel.onIntent(OnboardingIntent.CompleteClicked)
+                        }
+                    } else {
+                        dailyNotificationScheduler.cancelDailyNotification()
+                        viewModel.onIntent(OnboardingIntent.CompleteClicked)
+                    }
+                },
+                onSkip = { viewModel.onIntent(OnboardingIntent.SkipClicked) },
+                onNotificationsEnabledChanged = { enabled ->
+                    viewModel.onIntent(OnboardingIntent.NotificationToggleChanged(enabled))
+                },
+                onTimeSelected = { time ->
+                    viewModel.onIntent(OnboardingIntent.NotificationTimeChanged(time))
+                },
+            )
+        }
     }
 }
 
@@ -193,6 +223,7 @@ private fun NotificationsStep(
         description = "Выбери время, когда тебе удобно получать ежедневное космическое предупреждение.",
         primaryButtonText = if (state.notificationsEnabled) "Включить уведомления" else "Продолжить",
         onPrimaryClick = onComplete,
+        primaryButtonEnabled = !state.isNotificationPermissionRequestInProgress,
         canGoBack = state.canGoBack,
         onBackClick = onBack,
         secondaryButtonText = "Не сейчас",
@@ -203,6 +234,8 @@ private fun NotificationsStep(
             NotificationTimeSelector(
                 notificationsEnabled = state.notificationsEnabled,
                 selectedTime = state.notificationTime,
+                permissionStatus = state.notificationPermissionStatus,
+                isPermissionRequestInProgress = state.isNotificationPermissionRequestInProgress,
                 onNotificationsEnabledChanged = onNotificationsEnabledChanged,
                 onTimeSelected = onTimeSelected,
             )

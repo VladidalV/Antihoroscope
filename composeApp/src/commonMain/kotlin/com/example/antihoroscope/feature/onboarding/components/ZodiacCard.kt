@@ -1,5 +1,9 @@
 package com.example.antihoroscope.feature.onboarding.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,10 +19,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -42,6 +48,21 @@ fun ZodiacCard(
     val accent = Color(zodiacSign.accentColor)
     val shape = RoundedCornerShape(18.dp)
     val interactionSource = remember { MutableInteractionSource() }
+    val scale by animateFloatAsState(
+        targetValue = if (isSelected) 1.03f else 1f,
+        animationSpec = tween(durationMillis = 180),
+        label = "zodiac-card-scale",
+    )
+    val shadowElevation by animateDpAsState(
+        targetValue = if (isSelected) 14.dp else 0.dp,
+        animationSpec = tween(durationMillis = 180),
+        label = "zodiac-card-shadow",
+    )
+    val symbolColor by animateColorAsState(
+        targetValue = if (isSelected) colors.starWhite else accent,
+        animationSpec = tween(durationMillis = 180),
+        label = "zodiac-symbol-color",
+    )
     val backgroundBrush = Brush.verticalGradient(
         colors = listOf(
             colors.cosmicSurfaceHigh.copy(alpha = if (isSelected) 0.90f else 0.64f),
@@ -64,7 +85,7 @@ fun ZodiacCard(
             .then(
                 if (isSelected) {
                     Modifier.shadow(
-                        elevation = 14.dp,
+                        elevation = shadowElevation,
                         shape = shape,
                         ambientColor = accent,
                         spotColor = colors.neonPurple,
@@ -73,6 +94,10 @@ fun ZodiacCard(
                     Modifier
                 },
             )
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .fillMaxWidth()
             .heightIn(min = 112.dp)
             .background(
@@ -113,8 +138,8 @@ fun ZodiacCard(
         ) {
             Text(
                 text = zodiacSign.symbol,
-                color = if (isSelected) colors.starWhite else accent,
-                style = MaterialTheme.typography.titleLarge,
+                color = symbolColor,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )

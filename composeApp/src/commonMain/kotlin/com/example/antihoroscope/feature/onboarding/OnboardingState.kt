@@ -1,11 +1,15 @@
 package com.example.antihoroscope.feature.onboarding
 
+import com.example.antihoroscope.platform.notifications.NotificationPermissionStatus
+
 data class OnboardingState(
     val currentStep: OnboardingStep = OnboardingStep.Welcome,
     val zodiacSigns: List<ZodiacSignUiModel> = ZodiacSignUiModel.all,
     val selectedZodiacSignId: String? = null,
     val notificationsEnabled: Boolean = false,
     val notificationTime: NotificationTimeUiModel = NotificationTimeUiModel.Default,
+    val notificationPermissionStatus: NotificationPermissionStatus = NotificationPermissionStatus.Unknown,
+    val isNotificationPermissionRequestInProgress: Boolean = false,
     val isCompleting: Boolean = false,
     val errorMessage: String? = null,
 ) {

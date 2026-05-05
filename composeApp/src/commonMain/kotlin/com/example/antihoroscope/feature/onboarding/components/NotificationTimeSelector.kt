@@ -29,12 +29,15 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.antihoroscope.feature.onboarding.NotificationTimeUiModel
+import com.example.antihoroscope.platform.notifications.NotificationPermissionStatus
 import com.example.antihoroscope.ui.theme.AntiHoroscopeTheme
 
 @Composable
 fun NotificationTimeSelector(
     notificationsEnabled: Boolean,
     selectedTime: NotificationTimeUiModel,
+    permissionStatus: NotificationPermissionStatus,
+    isPermissionRequestInProgress: Boolean,
     onNotificationsEnabledChanged: (Boolean) -> Unit,
     onTimeSelected: (NotificationTimeUiModel) -> Unit,
     modifier: Modifier = Modifier,
@@ -87,11 +90,12 @@ fun NotificationTimeSelector(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
-                    text = if (notificationsEnabled) {
-                        "Космос постучится в ${selectedTime.label}"
-                    } else {
-                        "Судьба будет молчать. Подозрительно, но законно."
-                    },
+                    text = notificationStatusText(
+                        notificationsEnabled = notificationsEnabled,
+                        selectedTime = selectedTime,
+                        permissionStatus = permissionStatus,
+                        isPermissionRequestInProgress = isPermissionRequestInProgress,
+                    ),
                     modifier = Modifier.padding(top = 6.dp),
                     color = colors.moonMuted,
                     style = MaterialTheme.typography.bodyMedium,
@@ -101,6 +105,7 @@ fun NotificationTimeSelector(
             Switch(
                 checked = notificationsEnabled,
                 onCheckedChange = onNotificationsEnabledChanged,
+                enabled = !isPermissionRequestInProgress,
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = colors.starWhite,
                     checkedTrackColor = colors.neonPurple,
@@ -133,6 +138,35 @@ fun NotificationTimeSelector(
                     onClick = { onTimeSelected(time) },
                 )
             }
+        }
+    }
+}
+
+private fun notificationStatusText(
+    notificationsEnabled: Boolean,
+    selectedTime: NotificationTimeUiModel,
+    permissionStatus: NotificationPermissionStatus,
+    isPermissionRequestInProgress: Boolean,
+): String {
+    if (isPermissionRequestInProgress) {
+        return "Спрашиваем разрешение у системы. Космос ждёт в коридоре."
+    }
+
+    return when {
+        permissionStatus == NotificationPermissionStatus.Granted && notificationsEnabled -> {
+            "Космос постучится в ${selectedTime.label}"
+        }
+        permissionStatus == NotificationPermissionStatus.Denied -> {
+            "Система сказала нет. Можно включить позже в настройках."
+        }
+        permissionStatus == NotificationPermissionStatus.NotAvailable -> {
+            "На этом устройстве уведомления недоступны."
+        }
+        notificationsEnabled -> {
+            "Космос постучится в ${selectedTime.label}, если система разрешит."
+        }
+        else -> {
+            "Судьба будет молчать. Подозрительно, но законно."
         }
     }
 }

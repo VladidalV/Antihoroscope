@@ -5,7 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -21,6 +27,16 @@ fun CosmicBackground(
 ) {
     val colors = AntiHoroscopeTheme.colors
     val stars = remember { cosmicStars() }
+    val transition = rememberInfiniteTransition(label = "cosmic-background")
+    val twinklePhase by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2600),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "star-twinkle",
+    )
 
     Box(
         modifier = modifier
@@ -53,8 +69,9 @@ fun CosmicBackground(
             )
 
             stars.forEach { star ->
+                val twinkleAlpha = (star.alpha + star.twinkle * twinklePhase).coerceIn(0.18f, 0.82f)
                 drawCircle(
-                    color = Color.White.copy(alpha = star.alpha),
+                    color = Color.White.copy(alpha = twinkleAlpha),
                     radius = star.radius,
                     center = Offset(
                         x = size.width * star.x,
@@ -92,25 +109,26 @@ private data class CosmicStar(
     val y: Float,
     val radius: Float,
     val alpha: Float,
+    val twinkle: Float,
 )
 
 private fun cosmicStars(): List<CosmicStar> = listOf(
-    CosmicStar(x = 0.08f, y = 0.12f, radius = 1.3f, alpha = 0.66f),
-    CosmicStar(x = 0.18f, y = 0.28f, radius = 0.9f, alpha = 0.42f),
-    CosmicStar(x = 0.31f, y = 0.09f, radius = 1.1f, alpha = 0.54f),
-    CosmicStar(x = 0.42f, y = 0.22f, radius = 0.8f, alpha = 0.36f),
-    CosmicStar(x = 0.55f, y = 0.14f, radius = 1.4f, alpha = 0.58f),
-    CosmicStar(x = 0.73f, y = 0.08f, radius = 0.9f, alpha = 0.46f),
-    CosmicStar(x = 0.88f, y = 0.18f, radius = 1.2f, alpha = 0.62f),
-    CosmicStar(x = 0.12f, y = 0.46f, radius = 1.0f, alpha = 0.38f),
-    CosmicStar(x = 0.26f, y = 0.58f, radius = 1.5f, alpha = 0.55f),
-    CosmicStar(x = 0.39f, y = 0.43f, radius = 0.8f, alpha = 0.34f),
-    CosmicStar(x = 0.64f, y = 0.52f, radius = 1.1f, alpha = 0.50f),
-    CosmicStar(x = 0.82f, y = 0.61f, radius = 1.4f, alpha = 0.60f),
-    CosmicStar(x = 0.94f, y = 0.48f, radius = 0.8f, alpha = 0.40f),
-    CosmicStar(x = 0.07f, y = 0.78f, radius = 1.0f, alpha = 0.48f),
-    CosmicStar(x = 0.21f, y = 0.86f, radius = 0.7f, alpha = 0.32f),
-    CosmicStar(x = 0.47f, y = 0.73f, radius = 1.2f, alpha = 0.52f),
-    CosmicStar(x = 0.68f, y = 0.82f, radius = 0.9f, alpha = 0.44f),
-    CosmicStar(x = 0.91f, y = 0.88f, radius = 1.3f, alpha = 0.58f),
+    CosmicStar(x = 0.08f, y = 0.12f, radius = 1.3f, alpha = 0.52f, twinkle = 0.14f),
+    CosmicStar(x = 0.18f, y = 0.28f, radius = 0.9f, alpha = 0.34f, twinkle = 0.08f),
+    CosmicStar(x = 0.31f, y = 0.09f, radius = 1.1f, alpha = 0.44f, twinkle = 0.10f),
+    CosmicStar(x = 0.42f, y = 0.22f, radius = 0.8f, alpha = 0.30f, twinkle = 0.06f),
+    CosmicStar(x = 0.55f, y = 0.14f, radius = 1.4f, alpha = 0.46f, twinkle = 0.12f),
+    CosmicStar(x = 0.73f, y = 0.08f, radius = 0.9f, alpha = 0.36f, twinkle = 0.10f),
+    CosmicStar(x = 0.88f, y = 0.18f, radius = 1.2f, alpha = 0.50f, twinkle = 0.12f),
+    CosmicStar(x = 0.12f, y = 0.46f, radius = 1.0f, alpha = 0.32f, twinkle = 0.06f),
+    CosmicStar(x = 0.26f, y = 0.58f, radius = 1.5f, alpha = 0.46f, twinkle = 0.09f),
+    CosmicStar(x = 0.39f, y = 0.43f, radius = 0.8f, alpha = 0.28f, twinkle = 0.06f),
+    CosmicStar(x = 0.64f, y = 0.52f, radius = 1.1f, alpha = 0.42f, twinkle = 0.08f),
+    CosmicStar(x = 0.82f, y = 0.61f, radius = 1.4f, alpha = 0.50f, twinkle = 0.10f),
+    CosmicStar(x = 0.94f, y = 0.48f, radius = 0.8f, alpha = 0.34f, twinkle = 0.06f),
+    CosmicStar(x = 0.07f, y = 0.78f, radius = 1.0f, alpha = 0.40f, twinkle = 0.08f),
+    CosmicStar(x = 0.21f, y = 0.86f, radius = 0.7f, alpha = 0.28f, twinkle = 0.05f),
+    CosmicStar(x = 0.47f, y = 0.73f, radius = 1.2f, alpha = 0.44f, twinkle = 0.08f),
+    CosmicStar(x = 0.68f, y = 0.82f, radius = 0.9f, alpha = 0.36f, twinkle = 0.08f),
+    CosmicStar(x = 0.91f, y = 0.88f, radius = 1.3f, alpha = 0.48f, twinkle = 0.10f),
 )

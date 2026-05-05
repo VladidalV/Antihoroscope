@@ -35,6 +35,22 @@ class OnboardingStateHolder(
                 )
                 null
             }
+            OnboardingIntent.NotificationPermissionRequestStarted -> {
+                state = state.copy(
+                    isNotificationPermissionRequestInProgress = true,
+                    errorMessage = null,
+                )
+                null
+            }
+            is OnboardingIntent.NotificationPermissionRequestFinished -> {
+                state = state.copy(
+                    notificationPermissionStatus = intent.status,
+                    notificationsEnabled = intent.status.isGranted(),
+                    isNotificationPermissionRequestInProgress = false,
+                    errorMessage = null,
+                )
+                null
+            }
             OnboardingIntent.CompleteClicked -> complete()
         }
     }
@@ -145,6 +161,10 @@ class OnboardingStateHolder(
         const val SELECT_ZODIAC_ERROR = "Сначала выбери знак. Космос без этого не справится."
         const val UNKNOWN_ZODIAC_ERROR = "Такого знака зодиака космос пока не признаёт."
     }
+}
+
+private fun com.example.antihoroscope.platform.notifications.NotificationPermissionStatus.isGranted(): Boolean {
+    return this == com.example.antihoroscope.platform.notifications.NotificationPermissionStatus.Granted
 }
 
 sealed interface OnboardingEffect {
