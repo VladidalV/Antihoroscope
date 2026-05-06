@@ -1,8 +1,13 @@
 package com.example.antihoroscope.feature.prediction.detail
 
 import com.example.antihoroscope.core.analytics.AnalyticsTracker
+import com.example.antihoroscope.data.prediction.history.DefaultPredictionHistoryRepository
 import com.example.antihoroscope.domain.prediction.DailyPrediction
+import com.example.antihoroscope.domain.prediction.FakePredictionHistoryLocalDataSource
+import com.example.antihoroscope.domain.prediction.IsFavoritePredictionUseCase
 import com.example.antihoroscope.domain.prediction.PredictionCategory
+import com.example.antihoroscope.domain.prediction.RecordPredictionViewUseCase
+import com.example.antihoroscope.domain.prediction.ToggleFavoritePredictionUseCase
 import com.example.antihoroscope.domain.prediction.prediction
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
@@ -69,8 +74,11 @@ class PredictionDetailViewModelTest {
     @Test
     fun favoriteClickTogglesFavoriteStateAndEmitsFavoriteEvent() = runBlocking {
         val analyticsTracker = FakeAnalyticsTracker()
+        val favoriteDependencies = createFavoriteDependencies()
         val viewModel = PredictionDetailViewModel(
             dailyPrediction = dailyPrediction(),
+            isFavoritePredictionUseCase = favoriteDependencies.isFavoritePredictionUseCase,
+            toggleFavoritePredictionUseCase = favoriteDependencies.toggleFavoritePredictionUseCase,
             analyticsTracker = analyticsTracker,
         )
         val event = async(start = CoroutineStart.UNDISPATCHED) {
@@ -82,10 +90,11 @@ class PredictionDetailViewModelTest {
         viewModel.onIntent(PredictionDetailIntent.FavoriteClicked)
 
         assertTrue(viewModel.state.value.isFavorite)
-        assertEquals("Сохранено в избранное на этом экране.", viewModel.state.value.feedbackMessage)
+        assertTrue(favoriteDependencies.isFavoritePredictionUseCase("detail-chaos"))
+        assertEquals("Сохранено в избранное.", viewModel.state.value.feedbackMessage)
         assertEquals(
             PredictionDetailEvent.ShowFavoriteFeedback(
-                message = "Сохранено в избранное на этом экране.",
+                message = "Сохранено в избранное.",
                 isFavorite = true,
             ),
             event.await(),
@@ -101,13 +110,55 @@ class PredictionDetailViewModelTest {
 
     @Test
     fun secondFavoriteClickRemovesFavoriteState() {
-        val viewModel = PredictionDetailViewModel(dailyPrediction())
+        val favoriteDependencies = createFavoriteDependencies()
+        val viewModel = PredictionDetailViewModel(
+            dailyPrediction = dailyPrediction(),
+            isFavoritePredictionUseCase = favoriteDependencies.isFavoritePredictionUseCase,
+            toggleFavoritePredictionUseCase = favoriteDependencies.toggleFavoritePredictionUseCase,
+        )
 
         viewModel.onIntent(PredictionDetailIntent.FavoriteClicked)
         viewModel.onIntent(PredictionDetailIntent.FavoriteClicked)
 
         assertFalse(viewModel.state.value.isFavorite)
-        assertEquals("Убрано из избранного на этом экране.", viewModel.state.value.feedbackMessage)
+        assertFalse(favoriteDependencies.isFavoritePredictionUseCase("detail-chaos"))
+        assertEquals("Убрано из избранного.", viewModel.state.value.feedbackMessage)
+    }
+
+    @Test
+    fun initialFavoriteStateIsReadFromPersistence() {
+        val favoriteDependencies = createFavoriteDependencies()
+        favoriteDependencies.toggleFavoritePredictionUseCase(dailyPrediction())
+
+        val viewModel = PredictionDetailViewModel(
+            dailyPrediction = dailyPrediction(),
+            isFavoritePredictionUseCase = favoriteDependencies.isFavoritePredictionUseCase,
+            toggleFavoritePredictionUseCase = favoriteDependencies.toggleFavoritePredictionUseCase,
+        )
+
+        assertTrue(viewModel.state.value.isFavorite)
+    }
+
+    @Test
+    fun initRecordsDetailHistoryWithIdempotentSource() {
+        val favoriteDependencies = createFavoriteDependencies()
+        val recordPredictionViewUseCase = RecordPredictionViewUseCase(
+            repository = favoriteDependencies.repository,
+            currentTimeMillis = { 3_000L },
+        )
+
+        PredictionDetailViewModel(
+            dailyPrediction = dailyPrediction(),
+            recordPredictionViewUseCase = recordPredictionViewUseCase,
+        )
+        PredictionDetailViewModel(
+            dailyPrediction = dailyPrediction(),
+            recordPredictionViewUseCase = recordPredictionViewUseCase,
+        )
+
+        val history = favoriteDependencies.repository.getHistory(limit = 10)
+        assertEquals(1, history.size)
+        assertEquals("detail", history.single().source)
     }
 
     @Test
@@ -167,6 +218,24 @@ class PredictionDetailViewModelTest {
 
         assertNull(viewModel.state.value.feedbackMessage)
     }
+}
+
+private data class FavoriteDependencies(
+    val repository: DefaultPredictionHistoryRepository,
+    val isFavoritePredictionUseCase: IsFavoritePredictionUseCase,
+    val toggleFavoritePredictionUseCase: ToggleFavoritePredictionUseCase,
+)
+
+private fun createFavoriteDependencies(): FavoriteDependencies {
+    val repository = DefaultPredictionHistoryRepository(FakePredictionHistoryLocalDataSource())
+    return FavoriteDependencies(
+        repository = repository,
+        isFavoritePredictionUseCase = IsFavoritePredictionUseCase(repository),
+        toggleFavoritePredictionUseCase = ToggleFavoritePredictionUseCase(
+            repository = repository,
+            currentTimeMillis = { 1_000L },
+        ),
+    )
 }
 
 private class FakeAnalyticsTracker : AnalyticsTracker {

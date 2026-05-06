@@ -15,6 +15,7 @@ import com.example.antihoroscope.domain.prediction.GenerateManualPredictionResul
 import com.example.antihoroscope.domain.prediction.GenerateManualPredictionUseCase
 import com.example.antihoroscope.domain.prediction.GetGenerationLimitUseCase
 import com.example.antihoroscope.domain.prediction.PredictionCategory
+import com.example.antihoroscope.domain.prediction.RecordPredictionViewUseCase
 import com.example.antihoroscope.domain.prediction.analyticsName
 import com.example.antihoroscope.feature.onboarding.ZodiacSignUiModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,6 +31,7 @@ class HomeViewModel(
     private val generateManualPredictionUseCase: GenerateManualPredictionUseCase,
     private val getGenerationLimitUseCase: GetGenerationLimitUseCase,
     private val consumeGenerationLimitUseCase: ConsumeGenerationLimitUseCase,
+    private val recordPredictionViewUseCase: RecordPredictionViewUseCase? = null,
     private val analyticsTracker: AnalyticsTracker = NoOpAnalyticsTracker,
 ) : ViewModel() {
     private val _state = MutableStateFlow<HomeState>(HomeState.Loading)
@@ -76,6 +78,7 @@ class HomeViewModel(
                     ),
                 )
                 trackPredictionViewed(result.dailyPrediction)
+                recordPredictionView(result.dailyPrediction)
                 _state.value = HomeState.Content(
                     dailyPrediction = result.dailyPrediction,
                     generationLimit = generationLimit,
@@ -138,6 +141,7 @@ class HomeViewModel(
                             ),
                         )
                         trackPredictionViewed(result.dailyPrediction)
+                        recordPredictionView(result.dailyPrediction)
                         _state.value = refreshingState.copy(
                             dailyPrediction = result.dailyPrediction,
                             generationLimit = consumeResult.generationLimit,
@@ -189,6 +193,13 @@ class HomeViewModel(
         )
     }
 
+    private fun recordPredictionView(dailyPrediction: DailyPrediction) {
+        recordPredictionViewUseCase?.invoke(
+            dailyPrediction = dailyPrediction,
+            source = HISTORY_SOURCE_HOME,
+        )
+    }
+
     private fun trackRefreshLimitReached(dateKey: String) {
         analyticsTracker.track(
             eventName = HomeAnalyticsEvent.PredictionRefreshLimitReached,
@@ -206,6 +217,7 @@ class HomeViewModel(
     private companion object {
         const val EXHAUSTED_MESSAGE = "На сегодня космос выдохся. Возвращайся завтра."
         const val SHARE_SOON_MESSAGE = "Скоро можно будет отправить это в чат."
+        const val HISTORY_SOURCE_HOME = "home"
     }
 }
 

@@ -2,17 +2,20 @@ package com.example.antihoroscope.feature.home
 
 import com.example.antihoroscope.core.analytics.AnalyticsTracker
 import com.example.antihoroscope.core.time.FakeDateProvider
+import com.example.antihoroscope.data.prediction.history.DefaultPredictionHistoryRepository
 import com.example.antihoroscope.data.settings.HomeGenerationLimitSnapshot
 import com.example.antihoroscope.data.settings.HomeSettingsStorage
 import com.example.antihoroscope.data.settings.OnboardingSettingsSnapshot
 import com.example.antihoroscope.data.settings.OnboardingSettingsStorage
 import com.example.antihoroscope.domain.prediction.ConsumeGenerationLimitUseCase
+import com.example.antihoroscope.domain.prediction.FakePredictionHistoryLocalDataSource
 import com.example.antihoroscope.domain.prediction.GenerateDailyPredictionUseCase
 import com.example.antihoroscope.domain.prediction.GenerateManualPredictionUseCase
 import com.example.antihoroscope.domain.prediction.GetGenerationLimitUseCase
 import com.example.antihoroscope.domain.prediction.Prediction
 import com.example.antihoroscope.domain.prediction.PredictionCategory
 import com.example.antihoroscope.domain.prediction.FakePredictionRepository
+import com.example.antihoroscope.domain.prediction.RecordPredictionViewUseCase
 import com.example.antihoroscope.domain.prediction.TestDateSnapshot
 import com.example.antihoroscope.domain.prediction.prediction
 import kotlinx.coroutines.CoroutineStart
@@ -139,6 +142,25 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun screenShownRecordsHomeHistoryWithoutDuplicatingStableKey() {
+        val historyRepository = DefaultPredictionHistoryRepository(FakePredictionHistoryLocalDataSource())
+        val viewModel = createHomeViewModel(
+            recordPredictionViewUseCase = RecordPredictionViewUseCase(
+                repository = historyRepository,
+                currentTimeMillis = { 1_000L },
+            ),
+        )
+
+        viewModel.onIntent(HomeIntent.ScreenShown)
+        viewModel.onIntent(HomeIntent.ScreenShown)
+
+        val history = historyRepository.getHistory(limit = 10)
+        assertEquals(1, history.size)
+        assertEquals("home", history.single().source)
+        assertEquals("aries", history.single().zodiacSignId)
+    }
+
+    @Test
     fun exhaustedRefreshShowsMessageAndKeepsContentState() = runBlocking {
         val analyticsTracker = FakeAnalyticsTracker()
         val viewModel = createHomeViewModel(
@@ -204,6 +226,7 @@ class HomeViewModelTest {
         onboardingSettingsStorage: OnboardingSettingsStorage = FakeOnboardingSettingsStorage(),
         homeSettingsStorage: HomeSettingsStorage = FakeHomeSettingsStorage(),
         predictions: List<Prediction> = DefaultPredictions,
+        recordPredictionViewUseCase: RecordPredictionViewUseCase? = null,
         analyticsTracker: AnalyticsTracker = FakeAnalyticsTracker(),
     ): HomeViewModel {
         val dateProvider = FakeDateProvider(TestDateSnapshot)
@@ -227,6 +250,7 @@ class HomeViewModelTest {
                 homeSettingsStorage = homeSettingsStorage,
                 dateProvider = dateProvider,
             ),
+            recordPredictionViewUseCase = recordPredictionViewUseCase,
             analyticsTracker = analyticsTracker,
         )
     }

@@ -4,6 +4,19 @@
 
 Связанный task breakdown: `docs/prediction-history/PREDICTION_HISTORY_TASKS.md`.
 
+## 0. Статус реализации
+
+Статус на 2026-05-06: MVP реализован в коде, QA-документ создан.
+
+Принятые решения по реализации:
+
+- History stable key: `predictionId + dateKey + zodiacSignId + source`.
+- Повторная запись history key является no-op через SQLDelight query `INSERT OR IGNORE`.
+- Home записывает history с `source=home`.
+- Detail записывает отдельный idempotent history item с `source=detail`.
+- Favorite state в Detail читается и меняется через persisted repository/use cases.
+- Визуальный Profile/history/favorites UI остаётся вне scope MVP.
+
 ## 1. Цель блока
 
 Дать приложению первый устойчивый persistence-слой для пользовательской ценности после чтения предсказаний.

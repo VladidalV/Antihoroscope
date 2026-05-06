@@ -42,6 +42,24 @@
 - `HISTORY-012`: запустить verification-команды.
 - `HISTORY-013`: обновить статус документации.
 
+## 2.1 Фактический статус реализации
+
+| Task | Статус | Комментарий |
+| --- | --- | --- |
+| `HISTORY-001` | Done | ТЗ и task breakdown уже были созданы. |
+| `HISTORY-002` | Done | Подключён SQLDelight `app.cash.sqldelight` 2.3.2 для KMP, Android и iOS drivers. |
+| `HISTORY-003` | Done | Создана schema `PredictionHistory.sq` для history/favorites. History duplicate key делает no-op через `INSERT OR IGNORE`. |
+| `HISTORY-004` | Done | Добавлены `PredictionHistoryItem` и `FavoritePredictionItem` с factories из `DailyPrediction`. |
+| `HISTORY-005` | Done | Добавлены local data source interface, SQLDelight implementation и platform driver creation. |
+| `HISTORY-006` | Done | Добавлены repository contract, default repository и use cases для history/favorites. |
+| `HISTORY-007` | Done | Добавлены common unit-тесты repository/use cases. |
+| `HISTORY-008` | Done | Home пишет `source=home`, Detail пишет `source=detail`; дубли отсекаются stable key. |
+| `HISTORY-009` | Done | Detail читает persisted favorite state и toggles через use case. |
+| `HISTORY-010` | Done | Detail-тесты обновлены под persisted favorite. |
+| `HISTORY-011` | Done | Создан `PREDICTION_HISTORY_QA.md`. |
+| `HISTORY-012` | Done | `allTests`, `assembleDebug`, `compileKotlinIosSimulatorArm64` и SQLDelight migration verify проходят. |
+| `HISTORY-013` | Done | Документация обновлена по факту реализации. |
+
 ## 3. Задачи
 
 ### HISTORY-001: Создать ТЗ и task breakdown для Prediction History & Persisted Favorites

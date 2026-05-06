@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import com.example.antihoroscope.core.analytics.AnalyticsTracker
 import com.example.antihoroscope.core.analytics.NoOpAnalyticsTracker
 import com.example.antihoroscope.domain.prediction.DailyPrediction
+import com.example.antihoroscope.domain.prediction.IsFavoritePredictionUseCase
+import com.example.antihoroscope.domain.prediction.RecordPredictionViewUseCase
+import com.example.antihoroscope.domain.prediction.ToggleFavoritePredictionUseCase
 import com.example.antihoroscope.domain.prediction.analyticsName
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,11 +16,17 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class PredictionDetailViewModel(
-    dailyPrediction: DailyPrediction,
+    private val dailyPrediction: DailyPrediction,
+    private val isFavoritePredictionUseCase: IsFavoritePredictionUseCase? = null,
+    private val toggleFavoritePredictionUseCase: ToggleFavoritePredictionUseCase? = null,
+    private val recordPredictionViewUseCase: RecordPredictionViewUseCase? = null,
     private val analyticsTracker: AnalyticsTracker = NoOpAnalyticsTracker,
 ) : ViewModel() {
     private val _state = MutableStateFlow(
-        PredictionDetailState(dailyPrediction = dailyPrediction),
+        PredictionDetailState(
+            dailyPrediction = dailyPrediction,
+            isFavorite = isFavoritePredictionUseCase?.invoke(dailyPrediction.prediction.id) ?: false,
+        ),
     )
     val state: StateFlow<PredictionDetailState> = _state.asStateFlow()
 
@@ -25,6 +34,10 @@ class PredictionDetailViewModel(
     val events: SharedFlow<PredictionDetailEvent> = _events.asSharedFlow()
 
     init {
+        recordPredictionViewUseCase?.invoke(
+            dailyPrediction = dailyPrediction,
+            source = HISTORY_SOURCE_DETAIL,
+        )
         analyticsTracker.track(
             eventName = PredictionDetailAnalyticsEvent.DetailViewed,
             params = analyticsParams(),
@@ -63,7 +76,8 @@ class PredictionDetailViewModel(
     }
 
     private fun toggleFavorite() {
-        val nextFavoriteState = !_state.value.isFavorite
+        val nextFavoriteState = toggleFavoritePredictionUseCase?.invoke(dailyPrediction)
+            ?: !_state.value.isFavorite
         val message = if (nextFavoriteState) {
             FAVORITE_ADDED_MESSAGE
         } else {
@@ -115,9 +129,10 @@ class PredictionDetailViewModel(
 
     private companion object {
         const val SHARE_MESSAGE = "Скоро можно будет отправить это в чат."
-        const val FAVORITE_ADDED_MESSAGE = "Сохранено в избранное на этом экране."
-        const val FAVORITE_REMOVED_MESSAGE = "Убрано из избранного на этом экране."
+        const val FAVORITE_ADDED_MESSAGE = "Сохранено в избранное."
+        const val FAVORITE_REMOVED_MESSAGE = "Убрано из избранного."
         const val NEXT_MESSAGE = "Следующее предсказание появится в одном из следующих релизов."
+        const val HISTORY_SOURCE_DETAIL = "detail"
     }
 }
 

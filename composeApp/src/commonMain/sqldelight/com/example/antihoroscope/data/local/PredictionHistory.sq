@@ -1,0 +1,85 @@
+CREATE TABLE prediction_history (
+  historyId TEXT NOT NULL PRIMARY KEY,
+  predictionId TEXT NOT NULL,
+  predictionText TEXT NOT NULL,
+  category TEXT NOT NULL,
+  absurdityLevel INTEGER NOT NULL,
+  zodiacSignId TEXT NOT NULL,
+  zodiacSignName TEXT NOT NULL,
+  dateKey TEXT NOT NULL,
+  dateLabel TEXT NOT NULL,
+  source TEXT NOT NULL,
+  viewedAtEpochMillis INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX prediction_history_stable_key
+ON prediction_history(predictionId, dateKey, zodiacSignId, source);
+
+CREATE TABLE favorite_predictions (
+  predictionId TEXT NOT NULL PRIMARY KEY,
+  predictionText TEXT NOT NULL,
+  category TEXT NOT NULL,
+  absurdityLevel INTEGER NOT NULL,
+  zodiacSignId TEXT NOT NULL,
+  zodiacSignName TEXT NOT NULL,
+  dateKey TEXT NOT NULL,
+  dateLabel TEXT NOT NULL,
+  favoritedAtEpochMillis INTEGER NOT NULL
+);
+
+upsertHistory:
+INSERT OR IGNORE INTO prediction_history(
+  historyId,
+  predictionId,
+  predictionText,
+  category,
+  absurdityLevel,
+  zodiacSignId,
+  zodiacSignName,
+  dateKey,
+  dateLabel,
+  source,
+  viewedAtEpochMillis
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectHistory:
+SELECT *
+FROM prediction_history
+ORDER BY viewedAtEpochMillis DESC
+LIMIT ?;
+
+upsertFavorite:
+INSERT OR REPLACE INTO favorite_predictions(
+  predictionId,
+  predictionText,
+  category,
+  absurdityLevel,
+  zodiacSignId,
+  zodiacSignName,
+  dateKey,
+  dateLabel,
+  favoritedAtEpochMillis
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteFavorite:
+DELETE FROM favorite_predictions
+WHERE predictionId = ?;
+
+selectFavorite:
+SELECT *
+FROM favorite_predictions
+WHERE predictionId = ?;
+
+isFavorite:
+SELECT EXISTS(
+  SELECT 1
+  FROM favorite_predictions
+  WHERE predictionId = ?
+);
+
+selectFavorites:
+SELECT *
+FROM favorite_predictions
+ORDER BY favoritedAtEpochMillis DESC;

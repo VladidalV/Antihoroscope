@@ -9,7 +9,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.antihoroscope.core.time.createSystemDateProvider
+import com.example.antihoroscope.core.time.createSystemCurrentTimeProvider
+import com.example.antihoroscope.data.local.AntiHoroscopeDatabase
+import com.example.antihoroscope.data.local.rememberDatabaseDriver
 import com.example.antihoroscope.data.prediction.InMemoryPredictionRepository
+import com.example.antihoroscope.data.prediction.history.DefaultPredictionHistoryRepository
+import com.example.antihoroscope.data.prediction.history.SqlDelightPredictionHistoryLocalDataSource
 import com.example.antihoroscope.data.settings.rememberHomeSettingsStorage
 import com.example.antihoroscope.data.settings.rememberOnboardingSettingsStorage
 import com.example.antihoroscope.domain.onboarding.CompleteOnboardingParams
@@ -21,6 +26,9 @@ import com.example.antihoroscope.domain.prediction.DailyPrediction
 import com.example.antihoroscope.domain.prediction.GenerateDailyPredictionUseCase
 import com.example.antihoroscope.domain.prediction.GenerateManualPredictionUseCase
 import com.example.antihoroscope.domain.prediction.GetGenerationLimitUseCase
+import com.example.antihoroscope.domain.prediction.IsFavoritePredictionUseCase
+import com.example.antihoroscope.domain.prediction.RecordPredictionViewUseCase
+import com.example.antihoroscope.domain.prediction.ToggleFavoritePredictionUseCase
 import com.example.antihoroscope.feature.home.HomeEvent
 import com.example.antihoroscope.feature.home.HomeIntent
 import com.example.antihoroscope.feature.home.HomeScreen
@@ -40,8 +48,18 @@ fun App() {
     AntiHoroscopeTheme {
         val onboardingSettingsStorage = rememberOnboardingSettingsStorage()
         val homeSettingsStorage = rememberHomeSettingsStorage()
+        val databaseDriver = rememberDatabaseDriver()
         val dateProvider = remember { createSystemDateProvider() }
+        val currentTimeProvider = remember { createSystemCurrentTimeProvider() }
+        val database = remember(databaseDriver) {
+            AntiHoroscopeDatabase(databaseDriver)
+        }
         val predictionRepository = remember { InMemoryPredictionRepository() }
+        val predictionHistoryRepository = remember(database) {
+            DefaultPredictionHistoryRepository(
+                localDataSource = SqlDelightPredictionHistoryLocalDataSource(database),
+            )
+        }
         val observeOnboardingStatusUseCase = remember(onboardingSettingsStorage) {
             ObserveOnboardingStatusUseCase(onboardingSettingsStorage)
         }
@@ -72,12 +90,28 @@ fun App() {
                 dateProvider = dateProvider,
             )
         }
+        val recordPredictionViewUseCase = remember(predictionHistoryRepository, currentTimeProvider) {
+            RecordPredictionViewUseCase(
+                repository = predictionHistoryRepository,
+                currentTimeMillis = currentTimeProvider::currentTimeMillis,
+            )
+        }
+        val isFavoritePredictionUseCase = remember(predictionHistoryRepository) {
+            IsFavoritePredictionUseCase(predictionHistoryRepository)
+        }
+        val toggleFavoritePredictionUseCase = remember(predictionHistoryRepository, currentTimeProvider) {
+            ToggleFavoritePredictionUseCase(
+                repository = predictionHistoryRepository,
+                currentTimeMillis = currentTimeProvider::currentTimeMillis,
+            )
+        }
         val homeViewModel = remember(
             onboardingSettingsStorage,
             generateDailyPredictionUseCase,
             generateManualPredictionUseCase,
             getGenerationLimitUseCase,
             consumeGenerationLimitUseCase,
+            recordPredictionViewUseCase,
         ) {
             HomeViewModel(
                 onboardingSettingsStorage = onboardingSettingsStorage,
@@ -85,6 +119,7 @@ fun App() {
                 generateManualPredictionUseCase = generateManualPredictionUseCase,
                 getGenerationLimitUseCase = getGenerationLimitUseCase,
                 consumeGenerationLimitUseCase = consumeGenerationLimitUseCase,
+                recordPredictionViewUseCase = recordPredictionViewUseCase,
             )
         }
         val onboardingStatus = remember(observeOnboardingStatusUseCase) {
@@ -134,8 +169,16 @@ fun App() {
                 val detailViewModel = remember(
                     detailPrediction.prediction.id,
                     detailPrediction.dateKey,
+                    isFavoritePredictionUseCase,
+                    toggleFavoritePredictionUseCase,
+                    recordPredictionViewUseCase,
                 ) {
-                    PredictionDetailViewModel(detailPrediction)
+                    PredictionDetailViewModel(
+                        dailyPrediction = detailPrediction,
+                        isFavoritePredictionUseCase = isFavoritePredictionUseCase,
+                        toggleFavoritePredictionUseCase = toggleFavoritePredictionUseCase,
+                        recordPredictionViewUseCase = recordPredictionViewUseCase,
+                    )
                 }
                 val detailState by detailViewModel.state.collectAsState()
 
