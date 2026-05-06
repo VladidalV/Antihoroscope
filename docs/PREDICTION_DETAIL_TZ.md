@@ -4,6 +4,31 @@
 
 Связанный task breakdown: `docs/PREDICTION_DETAIL_TASKS.md`.
 
+## 0. Статус реализации
+
+Status: Done
+
+Дата обновления: 2026-05-06
+
+Prediction Detail MVP реализован в текущей архитектуре `composeApp`.
+
+Фактическая реализация:
+
+- detail-экран открывается по тапу на Home-карточку;
+- detail получает текущий `DailyPrediction` из `HomeState.Content`;
+- detail показывает полный текст, знак, категорию, дату, absurdity level и псевдонаучную подпись;
+- top back action возвращает на Home без пересоздания `HomeViewModel`;
+- `Поделиться`, `В избранное` и `Следующее` показывают MVP feedback;
+- favorite хранится только локально на detail-экране;
+- обязательные analytics events отправляются через `AnalyticsTracker`;
+- visual QA зафиксирован в `docs/PREDICTION_DETAIL_VISUAL_QA.md`;
+- verification-команды прошли:
+  - `./gradlew :composeApp:allTests`;
+  - `./gradlew :composeApp:assembleDebug`;
+  - `./gradlew :composeApp:compileKotlinIosSimulatorArm64`.
+
+Ограничения MVP сохранены: SQLDelight history, persisted favorites, real share sheet, image share card, backend, bottom navigation и полноценный navigation framework не добавлялись.
+
 ## 1. Цель блока
 
 Дать пользователю второй полноценный экран после Home, где предсказание можно прочитать целиком, увидеть его метаданные и выполнить базовые действия.

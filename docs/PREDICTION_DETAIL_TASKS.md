@@ -50,6 +50,7 @@
 
 **Тип:** Documentation  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** нет  
 **Файлы:**
 
@@ -78,6 +79,7 @@
 
 **Тип:** Architecture / State  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-001`  
 **Файлы:**
 
@@ -112,6 +114,7 @@
 
 **Тип:** State management  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-002`  
 **Файлы:**
 
@@ -138,6 +141,7 @@
 
 **Тип:** Tests  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-003`  
 **Файлы:**
 
@@ -164,6 +168,7 @@
 
 **Тип:** UI  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-002`  
 **Файлы:**
 
@@ -191,6 +196,7 @@
 
 **Тип:** UI / Screen  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-003`, `DETAIL-005`  
 **Файлы:**
 
@@ -218,6 +224,7 @@
 
 **Тип:** Navigation / Integration  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-006`  
 **Файлы:**
 
@@ -253,6 +260,7 @@
 
 **Тип:** UX  
 **Приоритет:** Medium  
+**Статус:** Done  
 **Зависимости:** `DETAIL-006`  
 **Файлы:**
 
@@ -279,6 +287,7 @@
 
 **Тип:** Analytics  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-003`, `DETAIL-007`, `DETAIL-008`  
 **Файлы:**
 
@@ -306,6 +315,7 @@
 
 **Тип:** QA / Visual  
 **Приоритет:** Medium  
+**Статус:** Done  
 **Зависимости:** `DETAIL-006`, `DETAIL-008`  
 **Файлы:**
 
@@ -334,6 +344,7 @@
 
 **Тип:** Verification  
 **Приоритет:** High  
+**Статус:** Done  
 **Зависимости:** `DETAIL-004`, `DETAIL-009`, `DETAIL-010`  
 **Файлы:** нет обязательных
 
@@ -359,6 +370,7 @@
 
 **Тип:** Documentation / Status  
 **Приоритет:** Medium  
+**Статус:** Done  
 **Зависимости:** `DETAIL-011`  
 **Файлы:**
 
@@ -398,7 +410,53 @@
 ./gradlew :composeApp:compileKotlinIosSimulatorArm64
 ```
 
-## 5. Definition of Done для Prediction Detail MVP
+## 5. Implementation Status
+
+Status: Done
+
+Дата обновления: 2026-05-06
+
+Реализовано:
+
+- `PredictionDetailState`, `PredictionDetailIntent`, `PredictionDetailEvent`.
+- `PredictionDetailViewModel` с локальным favorite state, transient feedback и analytics.
+- Unit-тесты для initial state, share, favorite, next, back, feedback cleanup и analytics.
+- `PredictionDetailCard` с полным текстом, metadata row и псевдонаучной подписью.
+- `PredictionDetailScreen` на `CosmicBackground` с top back action, scroll и action buttons.
+- Переход Home -> Detail через `HomeEvent.PredictionSelected`.
+- Возврат Detail -> Home без пересоздания `HomeViewModel`.
+- MVP feedback для `Поделиться`, `В избранное` и `Следующее`.
+- Visual QA: `docs/PREDICTION_DETAIL_VISUAL_QA.md`.
+
+Verification:
+
+| Command | Result |
+| --- | --- |
+| `./gradlew :composeApp:allTests` | Pass |
+| `./gradlew :composeApp:assembleDebug` | Pass |
+| `./gradlew :composeApp:compileKotlinIosSimulatorArm64` | Pass |
+
+Принятые MVP-решения:
+
+- Detail получает `DailyPrediction` напрямую из текущего `HomeState.Content` в `App.kt`.
+- Favorite хранится только локально в `PredictionDetailViewModel`.
+- Share sheet не открывается; вместо него показывается MVP-сообщение.
+- `Следующее` остаётся отложенным действием с понятным feedback.
+- Полноценный navigation framework не добавлялся.
+- Screenshot-based QA не проводился, потому что в проекте нет настроенного screenshot harness; зафиксирован code-level visual QA по аналогии с Home.
+
+Отложено за пределы MVP:
+
+- SQLDelight history.
+- Persisted favorites.
+- Real system share sheet.
+- Image share card.
+- Bottom navigation.
+- Remote/backend.
+- Генерация следующего прогноза на detail-экране.
+- Screenshot-based visual regression harness.
+
+## 6. Definition of Done для Prediction Detail MVP
 
 Эпик считается завершённым, когда:
 
@@ -413,7 +471,7 @@
 - `allTests`, `assembleDebug` и iOS compile проходят.
 - SQLDelight, persisted favorites, real share sheet и image share card не попали в MVP scope.
 
-## 6. Рекомендуемый порядок реализации
+## 7. Рекомендуемый порядок реализации
 
 1. Закрыть `DETAIL-001`.
 2. Реализовать contract: `DETAIL-002`.
@@ -427,8 +485,8 @@
 10. Запустить verification: `DETAIL-011`.
 11. Обновить документацию по факту: `DETAIL-012`.
 
-## 7. Что брать первым
+## 8. Что брать следующим
 
-Первым нужно выполнить `DETAIL-001`, затем сразу переходить к `DETAIL-002`.
+Prediction Detail MVP закрыт. Следующий эпик можно выбирать из отложенных блоков: persisted favorites, real share sheet, history, image share card, bottom navigation или screenshot-based visual regression.
 
-Ключевая техническая развилка перед кодом: выбрать, будет ли detail получать `DailyPrediction` напрямую из текущего `HomeState.Content` в `App.kt` или будет выполнять lookup по `predictionId`. Для MVP предпочтительнее первый вариант: он проще, не требует новой persistence-модели и соответствует текущему scope.
+Ключевое решение MVP уже принято: detail получает `DailyPrediction` напрямую из текущего `HomeState.Content` в `App.kt`. Lookup по `predictionId` и новая persistence-модель не добавлялись.

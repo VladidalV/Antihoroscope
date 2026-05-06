@@ -17,14 +17,20 @@ import com.example.antihoroscope.domain.onboarding.CompleteOnboardingResult
 import com.example.antihoroscope.domain.onboarding.CompleteOnboardingUseCase
 import com.example.antihoroscope.domain.onboarding.ObserveOnboardingStatusUseCase
 import com.example.antihoroscope.domain.prediction.ConsumeGenerationLimitUseCase
+import com.example.antihoroscope.domain.prediction.DailyPrediction
 import com.example.antihoroscope.domain.prediction.GenerateDailyPredictionUseCase
 import com.example.antihoroscope.domain.prediction.GenerateManualPredictionUseCase
 import com.example.antihoroscope.domain.prediction.GetGenerationLimitUseCase
 import com.example.antihoroscope.feature.home.HomeEvent
 import com.example.antihoroscope.feature.home.HomeIntent
 import com.example.antihoroscope.feature.home.HomeScreen
+import com.example.antihoroscope.feature.home.HomeState
 import com.example.antihoroscope.feature.home.HomeViewModel
 import com.example.antihoroscope.feature.onboarding.OnboardingScreen
+import com.example.antihoroscope.feature.prediction.detail.PredictionDetailEvent
+import com.example.antihoroscope.feature.prediction.detail.PredictionDetailIntent
+import com.example.antihoroscope.feature.prediction.detail.PredictionDetailScreen
+import com.example.antihoroscope.feature.prediction.detail.PredictionDetailViewModel
 import com.example.antihoroscope.ui.theme.AntiHoroscopeTheme
 import kotlinx.coroutines.delay
 
@@ -90,6 +96,9 @@ fun App() {
         var homeMessage by remember {
             mutableStateOf<String?>(null)
         }
+        var selectedDetailPrediction by remember {
+            mutableStateOf<DailyPrediction?>(null)
+        }
 
         if (isOnboardingCompleted) {
             LaunchedEffect(homeViewModel) {
@@ -105,17 +114,61 @@ fun App() {
                                 homeMessage = null
                             }
                         }
-                        is HomeEvent.PredictionSelected -> Unit
+                        is HomeEvent.PredictionSelected -> {
+                            val contentState = homeViewModel.state.value as? HomeState.Content
+                            val dailyPrediction = contentState?.dailyPrediction
+
+                            if (dailyPrediction?.prediction?.id == event.predictionId) {
+                                homeMessage = null
+                                selectedDetailPrediction = dailyPrediction
+                            }
+                        }
                     }
                 }
             }
 
             val homeState by homeViewModel.state.collectAsState()
-            HomeScreen(
-                state = homeState,
-                message = homeMessage,
-                onIntent = homeViewModel::onIntent,
-            )
+            val detailPrediction = selectedDetailPrediction
+
+            if (detailPrediction != null) {
+                val detailViewModel = remember(
+                    detailPrediction.prediction.id,
+                    detailPrediction.dateKey,
+                ) {
+                    PredictionDetailViewModel(detailPrediction)
+                }
+                val detailState by detailViewModel.state.collectAsState()
+
+                LaunchedEffect(detailViewModel) {
+                    detailViewModel.events.collect { event ->
+                        when (event) {
+                            PredictionDetailEvent.NavigateBack -> {
+                                selectedDetailPrediction = null
+                            }
+                            is PredictionDetailEvent.ShowFavoriteFeedback -> {
+                                detailViewModel.clearFeedbackAfterDelay(event.message)
+                            }
+                            is PredictionDetailEvent.ShowNextFeedback -> {
+                                detailViewModel.clearFeedbackAfterDelay(event.message)
+                            }
+                            is PredictionDetailEvent.ShowShareFeedback -> {
+                                detailViewModel.clearFeedbackAfterDelay(event.message)
+                            }
+                        }
+                    }
+                }
+
+                PredictionDetailScreen(
+                    state = detailState,
+                    onIntent = detailViewModel::onIntent,
+                )
+            } else {
+                HomeScreen(
+                    state = homeState,
+                    message = homeMessage,
+                    onIntent = homeViewModel::onIntent,
+                )
+            }
         } else {
             OnboardingScreen(
                 onCompleted = { result ->
@@ -139,3 +192,11 @@ fun App() {
 }
 
 private const val HOME_MESSAGE_DURATION_MILLIS = 2_200L
+private const val DETAIL_MESSAGE_DURATION_MILLIS = 2_200L
+
+private suspend fun PredictionDetailViewModel.clearFeedbackAfterDelay(message: String) {
+    delay(DETAIL_MESSAGE_DURATION_MILLIS)
+    if (state.value.feedbackMessage == message) {
+        onIntent(PredictionDetailIntent.FeedbackShown)
+    }
+}

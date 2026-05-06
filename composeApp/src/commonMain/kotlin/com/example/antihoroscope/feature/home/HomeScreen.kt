@@ -3,6 +3,7 @@ package com.example.antihoroscope.feature.home
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -94,7 +95,11 @@ private fun HomeContentState(
 
         GlowingPredictionCard(
             dailyPrediction = state.dailyPrediction,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    onIntent(HomeIntent.PredictionClicked(state.dailyPrediction.prediction.id))
+                },
         )
 
         Spacer(modifier = Modifier.height(18.dp))
