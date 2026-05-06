@@ -1,5 +1,6 @@
 package com.example.antihoroscope.feature.home
 
+import com.example.antihoroscope.core.analytics.AnalyticsTracker
 import com.example.antihoroscope.core.time.FakeDateProvider
 import com.example.antihoroscope.data.settings.HomeGenerationLimitSnapshot
 import com.example.antihoroscope.data.settings.HomeSettingsStorage
@@ -114,10 +115,35 @@ class HomeViewModelTest {
         )
     }
 
+    @Test
+    fun shareClickShowsDeferredShareMessageAndTracksAnalytics() = runBlocking {
+        val analyticsTracker = FakeAnalyticsTracker()
+        val viewModel = createHomeViewModel(
+            analyticsTracker = analyticsTracker,
+        )
+        viewModel.onIntent(HomeIntent.ScreenShown)
+
+        val event = async(start = CoroutineStart.UNDISPATCHED) {
+            withTimeout(1_000) {
+                viewModel.events.first()
+            }
+        }
+        viewModel.onIntent(HomeIntent.ShareClicked)
+
+        assertEquals(
+            HomeEvent.ShowMessage("Скоро можно будет отправить это в чат."),
+            event.await(),
+        )
+        assertTrue(
+            analyticsTracker.eventNames.contains("prediction_share_clicked"),
+        )
+    }
+
     private fun createHomeViewModel(
         onboardingSettingsStorage: OnboardingSettingsStorage = FakeOnboardingSettingsStorage(),
         homeSettingsStorage: HomeSettingsStorage = FakeHomeSettingsStorage(),
         predictions: List<Prediction> = DefaultPredictions,
+        analyticsTracker: AnalyticsTracker = FakeAnalyticsTracker(),
     ): HomeViewModel {
         val dateProvider = FakeDateProvider(TestDateSnapshot)
         val predictionRepository = FakePredictionRepository(predictions)
@@ -140,6 +166,7 @@ class HomeViewModelTest {
                 homeSettingsStorage = homeSettingsStorage,
                 dateProvider = dateProvider,
             ),
+            analyticsTracker = analyticsTracker,
         )
     }
 }
@@ -179,6 +206,17 @@ private class FakeHomeSettingsStorage(
 
     override fun resetGenerationLimit() {
         snapshot = HomeGenerationLimitSnapshot()
+    }
+}
+
+private class FakeAnalyticsTracker : AnalyticsTracker {
+    val eventNames = mutableListOf<String>()
+
+    override fun track(
+        eventName: String,
+        params: Map<String, String>,
+    ) {
+        eventNames += eventName
     }
 }
 

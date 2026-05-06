@@ -190,6 +190,6 @@ private object HomeAnalyticsEvent {
     const val RefreshClicked = "home_refresh_clicked"
     const val RefreshBlocked = "home_refresh_blocked"
     const val RefreshFailed = "home_refresh_failed"
-    const val ShareClicked = "home_share_clicked"
+    const val ShareClicked = "prediction_share_clicked"
     const val PredictionClicked = "home_prediction_clicked"
 }
