@@ -30,7 +30,10 @@ import kotlin.test.assertTrue
 class HomeViewModelTest {
     @Test
     fun screenShownMovesInitialLoadingToContent() {
-        val viewModel = createHomeViewModel()
+        val analyticsTracker = FakeAnalyticsTracker()
+        val viewModel = createHomeViewModel(
+            analyticsTracker = analyticsTracker,
+        )
 
         assertEquals(HomeState.Loading, viewModel.state.value)
 
@@ -41,6 +44,23 @@ class HomeViewModelTest {
         assertEquals("Овен", content.dailyPrediction.zodiacSignName)
         assertEquals(3, content.generationLimit.remainingCount)
         assertFalse(content.isRefreshing)
+        assertEquals(
+            AnalyticsEvent(
+                name = "home_viewed",
+                params = mapOf(
+                    "zodiac_sign" to "aries",
+                    "date_key" to TestDateSnapshot.dateKey,
+                ),
+            ),
+            analyticsTracker.events.first { event -> event.name == "home_viewed" },
+        )
+        assertEquals(
+            content.dailyPrediction.prediction.id,
+            analyticsTracker.events
+                .first { event -> event.name == "prediction_viewed" }
+                .params
+                .getValue("prediction_id"),
+        )
     }
 
     @Test
@@ -56,22 +76,34 @@ class HomeViewModelTest {
 
     @Test
     fun categorySelectedUpdatesContentState() {
-        val viewModel = createHomeViewModel()
+        val analyticsTracker = FakeAnalyticsTracker()
+        val viewModel = createHomeViewModel(
+            analyticsTracker = analyticsTracker,
+        )
         viewModel.onIntent(HomeIntent.ScreenShown)
 
         viewModel.onIntent(HomeIntent.CategorySelected(PredictionCategory.Money))
 
         val content = assertIs<HomeState.Content>(viewModel.state.value)
         assertEquals(PredictionCategory.Money, content.selectedCategory)
+        assertEquals(
+            AnalyticsEvent(
+                name = "prediction_category_selected",
+                params = mapOf("category" to "money"),
+            ),
+            analyticsTracker.events.last(),
+        )
     }
 
     @Test
     fun refreshSuccessUpdatesPredictionAndConsumesLimit() {
+        val analyticsTracker = FakeAnalyticsTracker()
         val viewModel = createHomeViewModel(
             predictions = listOf(
                 prediction(id = "daily-chaos", category = PredictionCategory.Chaos),
                 prediction(id = "manual-chaos", category = PredictionCategory.Chaos),
             ),
+            analyticsTracker = analyticsTracker,
         )
         viewModel.onIntent(HomeIntent.ScreenShown)
         val beforeRefresh = assertIs<HomeState.Content>(viewModel.state.value)
@@ -86,10 +118,29 @@ class HomeViewModelTest {
         assertEquals(1, afterRefresh.generationLimit.usedCount)
         assertEquals(2, afterRefresh.generationLimit.remainingCount)
         assertFalse(afterRefresh.isRefreshing)
+        assertEquals(
+            AnalyticsEvent(
+                name = "prediction_refreshed",
+                params = mapOf(
+                    "generation_used_count" to "1",
+                    "remaining_count" to "2",
+                    "category" to "chaos",
+                ),
+            ),
+            analyticsTracker.events.first { event -> event.name == "prediction_refreshed" },
+        )
+        assertEquals(
+            afterRefresh.dailyPrediction.prediction.id,
+            analyticsTracker.events
+                .last { event -> event.name == "prediction_viewed" }
+                .params
+                .getValue("prediction_id"),
+        )
     }
 
     @Test
     fun exhaustedRefreshShowsMessageAndKeepsContentState() = runBlocking {
+        val analyticsTracker = FakeAnalyticsTracker()
         val viewModel = createHomeViewModel(
             homeSettingsStorage = FakeHomeSettingsStorage(
                 snapshot = HomeGenerationLimitSnapshot(
@@ -97,6 +148,7 @@ class HomeViewModelTest {
                     usedCount = 3,
                 ),
             ),
+            analyticsTracker = analyticsTracker,
         )
         viewModel.onIntent(HomeIntent.ScreenShown)
 
@@ -112,6 +164,13 @@ class HomeViewModelTest {
         assertEquals(
             HomeEvent.ShowMessage("На сегодня космос выдохся. Возвращайся завтра."),
             event.await(),
+        )
+        assertEquals(
+            AnalyticsEvent(
+                name = "prediction_refresh_limit_reached",
+                params = mapOf("date_key" to TestDateSnapshot.dateKey),
+            ),
+            analyticsTracker.events.first { event -> event.name == "prediction_refresh_limit_reached" },
         )
     }
 
@@ -135,7 +194,9 @@ class HomeViewModelTest {
             event.await(),
         )
         assertTrue(
-            analyticsTracker.eventNames.contains("prediction_share_clicked"),
+            analyticsTracker.events.any { event ->
+                event.name == "prediction_share_clicked" && event.params.containsKey("prediction_id")
+            },
         )
     }
 
@@ -210,15 +271,23 @@ private class FakeHomeSettingsStorage(
 }
 
 private class FakeAnalyticsTracker : AnalyticsTracker {
-    val eventNames = mutableListOf<String>()
+    val events = mutableListOf<AnalyticsEvent>()
 
     override fun track(
         eventName: String,
         params: Map<String, String>,
     ) {
-        eventNames += eventName
+        events += AnalyticsEvent(
+            name = eventName,
+            params = params,
+        )
     }
 }
+
+private data class AnalyticsEvent(
+    val name: String,
+    val params: Map<String, String>,
+)
 
 private val DefaultPredictions = listOf(
     prediction(id = "love-common", category = PredictionCategory.Love),

@@ -2,6 +2,40 @@
 
 Документ разбивает `Epic 2: Дневное предсказание / Home MVP` на подзадачи, которые можно брать в разработку последовательно. Базовое ТЗ: `docs/HOME_TZ.md`.
 
+## 0. Статус реализации
+
+Статус на 2026-05-06: Home MVP реализован в рамках задач `HOME-001` ... `HOME-024`.
+
+Выполнено:
+
+- `HOME-001` ... `HOME-007`: domain-модели, каталог, repository, date provider, daily/manual generation и unit-тесты генератора.
+- `HOME-008` ... `HOME-010`: storage дневного лимита, use cases лимита и unit-тесты лимита.
+- `HOME-011` ... `HOME-013`: Home state contract, `HomeViewModel` и unit-тесты state machine.
+- `HOME-014` ... `HOME-019`: Home UI components, `HomeScreen`, подключение вместо placeholder и MVP share feedback.
+- `HOME-020`: analytics events заведены через существующий `AnalyticsTracker`.
+- `HOME-021`: локальный каталог расширен до 100 предсказаний, по 20 на категорию.
+- `HOME-022`: visual QA зафиксирован в `docs/HOME_VISUAL_QA.md`.
+- `HOME-023`: verification выполнен: `:composeApp:allTests`, `:composeApp:assembleDebug`, `:composeApp:compileKotlinIosSimulatorArm64`.
+- `HOME-024`: документация статуса обновлена.
+
+Известные ограничения текущего Home MVP:
+
+- Share button показывает MVP feedback, но не открывает platform share sheet.
+- Нет истории предсказаний, избранного и детального экрана.
+- Нет SQLDelight/cache history; каталог и генерация локальные in-memory/commonMain.
+- Нет bottom navigation, профиля, настроек смены знака и community/feed.
+- Visual QA выполнен как code-level/static pass без emulator screenshot harness.
+- Analytics сейчас проходит через существующий `AnalyticsTracker`; production backend/Firebase integration не подключен.
+
+Отложено на следующие эпики:
+
+- История предсказаний и SQLDelight persistence.
+- `PredictionDetailScreen`, favorites и profile/settings flow.
+- Реальный platform share sheet и image share card.
+- Bottom navigation и расширение app navigation.
+- Screenshot/emulator-based visual regression QA.
+- Remote config/backend, premium packs, ads и community/feed.
+
 ## 1. Целевой результат
 
 После выполнения блока:
@@ -730,12 +764,11 @@
 - `./gradlew allTests` проходит.
 - `./gradlew assembleDebug` проходит.
 
-## 6. Что брать первым
+## 6. Что брать дальше
 
-Первая реализационная задача:
+Home MVP закрыт. Следующий блок лучше планировать от продуктового приоритета:
 
-```text
-HOME-001: Создать domain-модели предсказаний
-```
-
-После неё логично сразу делать `HOME-002`, потому что без каталога нельзя проверить generator end-to-end.
+- если нужна пользовательская ценность в текущем Home: `PredictionDetailScreen` + favorites;
+- если нужна техническая основа: SQLDelight history/cache;
+- если нужен рост/шаринг: real share sheet + image share card;
+- если нужна навигация приложения: bottom navigation + profile/settings.

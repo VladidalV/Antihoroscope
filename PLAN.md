@@ -27,6 +27,8 @@
 - Кнопка "Поделиться"
 - Нижняя навигация: Главная / Категории / Лента / Профиль
 
+**Статус Home MVP на 2026-05-06:** реализован первый usable Home без bottom navigation: дневное предсказание, категории, лимит 3 manual refresh в день, локальный каталог 100 предсказаний, MVP share feedback, analytics events и verification. Подробный статус: `docs/HOME_TASKS.md`; visual QA: `docs/HOME_VISUAL_QA.md`.
+
 ### 1.4 Детальный экран предсказания (`PredictionDetailScreen`)
 - Полный текст предсказания
 - Иконка категории + цвет категории
@@ -96,6 +98,8 @@
 - Авторизация пользователей
 - Социальные функции (лайки, комментарии)
 - Виджет для домашнего экрана
+- Реальный platform share sheet и image share card для текущего Home MVP
+- SQLDelight history/cache для дневных предсказаний
 
 ---
 

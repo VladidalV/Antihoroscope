@@ -6,6 +6,7 @@ import com.example.antihoroscope.core.analytics.NoOpAnalyticsTracker
 import com.example.antihoroscope.data.settings.OnboardingSettingsStorage
 import com.example.antihoroscope.domain.prediction.ConsumeGenerationLimitResult
 import com.example.antihoroscope.domain.prediction.ConsumeGenerationLimitUseCase
+import com.example.antihoroscope.domain.prediction.DailyPrediction
 import com.example.antihoroscope.domain.prediction.GenerateDailyPredictionParams
 import com.example.antihoroscope.domain.prediction.GenerateDailyPredictionResult
 import com.example.antihoroscope.domain.prediction.GenerateDailyPredictionUseCase
@@ -68,9 +69,13 @@ class HomeViewModel(
             is GenerateDailyPredictionResult.Success -> {
                 val generationLimit = getGenerationLimitUseCase()
                 analyticsTracker.track(
-                    eventName = HomeAnalyticsEvent.ScreenShown,
-                    params = mapOf("zodiac_sign_id" to zodiacSign.id),
+                    eventName = HomeAnalyticsEvent.HomeViewed,
+                    params = mapOf(
+                        "zodiac_sign" to zodiacSign.id,
+                        "date_key" to result.dailyPrediction.dateKey,
+                    ),
                 )
+                trackPredictionViewed(result.dailyPrediction)
                 _state.value = HomeState.Content(
                     dailyPrediction = result.dailyPrediction,
                     generationLimit = generationLimit,
@@ -100,7 +105,7 @@ class HomeViewModel(
         if (currentLimit.isExhausted) {
             _state.value = currentState.copy(generationLimit = currentLimit)
             _events.tryEmit(HomeEvent.ShowMessage(EXHAUSTED_MESSAGE))
-            analyticsTracker.track(HomeAnalyticsEvent.RefreshBlocked)
+            trackRefreshLimitReached(currentLimit.dateKey)
             return
         }
 
@@ -125,12 +130,14 @@ class HomeViewModel(
                 when (val consumeResult = consumeGenerationLimitUseCase()) {
                     is ConsumeGenerationLimitResult.Success -> {
                         analyticsTracker.track(
-                            eventName = HomeAnalyticsEvent.RefreshClicked,
+                            eventName = HomeAnalyticsEvent.PredictionRefreshed,
                             params = mapOf(
-                                "category" to currentState.selectedCategory.analyticsName,
+                                "generation_used_count" to consumeResult.generationLimit.usedCount.toString(),
                                 "remaining_count" to consumeResult.generationLimit.remainingCount.toString(),
+                                "category" to currentState.selectedCategory.analyticsName,
                             ),
                         )
+                        trackPredictionViewed(result.dailyPrediction)
                         _state.value = refreshingState.copy(
                             dailyPrediction = result.dailyPrediction,
                             generationLimit = consumeResult.generationLimit,
@@ -140,7 +147,7 @@ class HomeViewModel(
                     is ConsumeGenerationLimitResult.Blocked -> {
                         _state.value = currentState.copy(generationLimit = consumeResult.generationLimit)
                         _events.tryEmit(HomeEvent.ShowMessage(EXHAUSTED_MESSAGE))
-                        analyticsTracker.track(HomeAnalyticsEvent.RefreshBlocked)
+                        trackRefreshLimitReached(consumeResult.generationLimit.dateKey)
                     }
                 }
             }
@@ -169,6 +176,26 @@ class HomeViewModel(
         _events.tryEmit(HomeEvent.PredictionSelected(predictionId))
     }
 
+    private fun trackPredictionViewed(dailyPrediction: DailyPrediction) {
+        val prediction = dailyPrediction.prediction
+        analyticsTracker.track(
+            eventName = HomeAnalyticsEvent.PredictionViewed,
+            params = mapOf(
+                "prediction_id" to prediction.id,
+                "category" to prediction.category.analyticsName,
+                "absurdity_level" to prediction.absurdityLevel.toString(),
+                "zodiac_sign" to dailyPrediction.zodiacSignId,
+            ),
+        )
+    }
+
+    private fun trackRefreshLimitReached(dateKey: String) {
+        analyticsTracker.track(
+            eventName = HomeAnalyticsEvent.PredictionRefreshLimitReached,
+            params = mapOf("date_key" to dateKey),
+        )
+    }
+
     private fun getSelectedZodiacSign(): ZodiacSignUiModel? {
         val zodiacSignId = onboardingSettingsStorage.getSnapshot().zodiacSignId
         return ZodiacSignUiModel.all.firstOrNull { zodiacSign ->
@@ -183,12 +210,13 @@ class HomeViewModel(
 }
 
 private object HomeAnalyticsEvent {
-    const val ScreenShown = "home_screen_shown"
+    const val HomeViewed = "home_viewed"
+    const val PredictionViewed = "prediction_viewed"
     const val MissingZodiac = "home_missing_zodiac"
     const val EmptyCatalog = "home_empty_catalog"
-    const val CategorySelected = "home_category_selected"
-    const val RefreshClicked = "home_refresh_clicked"
-    const val RefreshBlocked = "home_refresh_blocked"
+    const val CategorySelected = "prediction_category_selected"
+    const val PredictionRefreshed = "prediction_refreshed"
+    const val PredictionRefreshLimitReached = "prediction_refresh_limit_reached"
     const val RefreshFailed = "home_refresh_failed"
     const val ShareClicked = "prediction_share_clicked"
     const val PredictionClicked = "home_prediction_clicked"

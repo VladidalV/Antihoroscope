@@ -133,6 +133,8 @@ private fun HomeContentState(
             onClick = { onIntent(HomeIntent.ShareClicked) },
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
+
+        Spacer(modifier = Modifier.height(88.dp))
     }
 }
 
